@@ -9,6 +9,8 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons'; 
+import { useNavigation } from '@react-navigation/native';
 
 import axios from 'axios';
 import { API_KEY } from '@env';
@@ -16,10 +18,12 @@ const apiKey = API_KEY;
 
 const apiUrl = 'https://api.openai.com/v1/engines/text-davinci-003/completions';
 
+
 const ChatScreen = () => {
   const [inputText, setInputText] = useState('');
   const [response, setResponse] = useState([]);
   const scrollViewRef = useRef(null);
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -72,18 +76,30 @@ const ChatScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Icon name="chevron-left" size={35} color="#FFFFFF" style={styles.backButtonIcon} />
+        </TouchableOpacity>
+        <Text style={styles.heading}>Chat</Text>
+      </View>
       <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={styles.contentContainer}
-        onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
+        onContentSizeChange={() =>
+          scrollViewRef.current.scrollToEnd({ animated: true })
+        }
       >
         {response.map((item) => (
           <View
             key={item.id}
-            style={item.isResponse ? styles.responseContainer : styles.messageContainer}
+            style={
+              item.isResponse
+                ? styles.responseContainer
+                : styles.messageContainer
+            }
           >
             <Text style={styles.messageText}>{item.text}</Text>
           </View>
@@ -109,13 +125,30 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#2C2647',
   },
   contentContainer: {
     padding: 10,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#442C60',
+    paddingTop: 40, // Adjust the paddingTop value for iOS and Android
+    paddingBottom: 10,
+    paddingRight: 30,
+    paddingLeft: 10,
+  },
+  heading: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  marginRight: 150,
+  },
+  
   messageContainer: {
-    backgroundColor: '#DCF8C6',
+    backgroundColor: '#574B7F',
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
@@ -123,7 +156,7 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
   },
   responseContainer: {
-    backgroundColor: '#F3F3F3',
+    backgroundColor: '#9386AC',
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
@@ -132,27 +165,29 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    color: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E8E8E8',
+    borderTopColor: '#5D507E',
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F4F4F4',
+    backgroundColor: '#574B7F',
     borderRadius: 20,
     padding: 8,
     paddingTop: 8,
     marginRight: 10,
     minHeight: 35, // Increase the height here
     alignSelf: 'center',
+    color: '#FFFFFF',
   },
   sendButton: {
-    backgroundColor: '#0782F9',
+    backgroundColor: '#8C77AA',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -163,5 +198,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 export default ChatScreen;
