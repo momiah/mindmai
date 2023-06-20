@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react-native';
 import { signOut, getAuth } from 'firebase/auth';
 import { FIREBASE_APP } from '../services/firebase.config';
 import { useNavigation } from '@react-navigation/native';
@@ -61,30 +61,62 @@ const HomeScreen = () => {
   );
 
   return (
-    <SafeAreaView>
-      <Text>Home Screen</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.heading}>Chats</Text>
       {/* List of chats */}
       <FlatList
         data={chats}
         renderItem={renderChatItem}
         keyExtractor={(item) => item.id}
       />
-      <TouchableOpacity onPress={handleSignOut}>
-        <Text>Sign Out</Text>
+      <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+        <Text style={styles.signOutButtonText}>Sign Out</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
-const styles = {
-  chatItem: {
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#2C2647',
     padding: 10,
+  },
+  heading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    backgroundColor: '#442C60',
+    padding: 10,
+    paddingTop: 30,
+    marginHorizontal: -10,
+  },
+  chatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 30,
     borderBottomWidth: 1,
-    borderBottomColor: 'gray',
+    borderBottomColor: '#574B7F',
   },
   chatTitle: {
+    flex: 1,
     fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 10,
   },
-};
+  signOutButton: {
+    backgroundColor: '#8C77AA',
+    borderRadius: 20,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  signOutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
 
 export default HomeScreen;
