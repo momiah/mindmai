@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons'; 
 import { useNavigation } from '@react-navigation/native';
+import{DotIndicator} from 'react-native-indicators';
 
 import axios from 'axios';
 import { API_KEY } from '@env';
@@ -22,6 +23,7 @@ const apiUrl = 'https://api.openai.com/v1/engines/text-davinci-003/completions';
 const ChatScreen = () => {
   const [inputText, setInputText] = useState('');
   const [response, setResponse] = useState([]);
+  const [loading, setLoading] = useState(false); 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
 
@@ -36,16 +38,21 @@ const ChatScreen = () => {
       return;
     }
 
-    const newResponse = {
+    const newMessage = {
       id: String(response.length),
       text: inputText,
       isResponse: false,
+      timestamp: new Date().getTime(), 
     };
 
-    const updatedResponse = [...response, newResponse];
+    const updatedResponse = [...response, newMessage];
     setResponse(updatedResponse);
     setInputText('');
 
+    setTimeout(() => {
+      setLoading(true);
+    }, 1000);
+    
     try {
       const apiResponse = await axios.post(
         apiUrl,
@@ -61,17 +68,26 @@ const ChatScreen = () => {
           },
         }
       );
-      const responseText = apiResponse.data.choices[0].text;
+      const responseText = apiResponse.data.choices[0].text.trim();
       const responseMessage = {
         id: `response-${response.length}`,
         text: responseText,
         isResponse: true,
+        timestamp: new Date().getTime(), 
       };
       setResponse((prevresponse) => [...prevresponse, responseMessage]);
-      console.log(responseText, 'looool');
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
   };
 
   return (
@@ -81,7 +97,7 @@ const ChatScreen = () => {
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Icon name="chevron-left" size={35} color="#FFFFFF" style={styles.backButtonIcon} />
+        <Icon name="chevron-left" size={35} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.heading}>Chat</Text>
       </View>
@@ -102,9 +118,20 @@ const ChatScreen = () => {
             }
           >
             <Text style={styles.messageText}>{item.text}</Text>
+            <View style={styles.timestampContainer}>
+            <Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text> 
+            </View>
           </View>
         ))}
       </ScrollView>
+      {loading && (
+  <View style={styles.loadingContainer}>
+    <View style={styles.loadingIndicatorContainer}>
+      <DotIndicator color="#FFFFFF" size={5} />
+    </View>
+  </View>
+)}
+
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -115,7 +142,7 @@ const ChatScreen = () => {
           multiline
         />
         <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Icon name="send" size={55} color="#FFFFFF" style={styles.sendButtonText}/>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -151,18 +178,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#574B7F',
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
     alignSelf: 'flex-end',
     maxWidth: '75%',
   },
   responseContainer: {
-    backgroundColor: '#9386AC',
+    backgroundColor: '#191f45',
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
     alignSelf: 'flex-start',
     maxWidth: '75%',
   },
+  timestamp: {
+  fontSize: 12,
+  color: '#BBBBBB',
+  marginTop: 5,
+},
+timestampContainer: {
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+},
   messageText: {
     fontSize: 16,
     color: '#FFFFFF',
@@ -188,15 +224,31 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: '#8C77AA',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   sendButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingLeft: 10,
+    paddingBottom: 10,
+    marginBottom: 10,
+    marginTop: -45,
+  },
+  loadingIndicatorContainer: {
+    backgroundColor: '#574B7F',
+    padding: 10,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+   height: 35,
+  },
+  
 });
 
 
