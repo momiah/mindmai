@@ -16,7 +16,7 @@ import * as Speech from "expo-speech";
 
 import axios from "axios";
 import { API_KEY } from "@env";
-const apiKey = API_KEY;
+const apiKey = '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';
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -40,22 +40,22 @@ const ChatScreen = () => {
     if (inputText.trim() === "") {
       return;
     }
-
+  
+    setTimeout(() => {
+      setLoading(!loading); // Show loading indicator after the delay
+    }, 100); // Adjust the delay time as needed
+  
     const newMessage = {
       id: String(response.length),
       text: inputText,
       isResponse: false,
       timestamp: new Date().getTime(),
     };
-
+  
     const updatedResponse = [...response, newMessage];
     setResponse(updatedResponse);
     setInputText("");
-
-    setTimeout(() => {
-      setLoading(true);
-    }, 1000);
-
+  
     try {
       const apiResponse = await axios.post(
         apiUrl,
@@ -71,6 +71,7 @@ const ChatScreen = () => {
           },
         }
       );
+  
       const responseText = apiResponse.data.choices[0].text.trim();
       const responseMessage = {
         id: `response-${response.length}`,
@@ -78,15 +79,16 @@ const ChatScreen = () => {
         isResponse: true,
         timestamp: new Date().getTime(),
       };
-      setResponse((prevresponse) => [...prevresponse, responseMessage]);
-
+  
+      setResponse((prevResponse) => [...prevResponse, responseMessage]);
       setPlaybackMessage(`response-${response.length}`);
     } catch (error) {
       console.error("Error:", error);
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide loading indicator, regardless of success or error
     }
   };
+  
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
@@ -95,6 +97,7 @@ const ChatScreen = () => {
     return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
   };
 
+  //EXPO VOICE
   const handlePlay = (messageId, text) => {
     if (playing && messageId === playbackMessage) {
       Speech.stop();
@@ -117,6 +120,8 @@ const ChatScreen = () => {
       });
     }
   };
+
+  console.log(response, 'response', inputText, 'inputText')
 
   return (
     <KeyboardAvoidingView
@@ -263,7 +268,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "#5D507E",
-    paddingVertical: 10,
+    paddingBottom: 25,
+    paddingTop: 15,
     paddingHorizontal: 16,
   },
   input: {
