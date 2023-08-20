@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet, StatusBar } from 'react-native';
 import { signOut, getAuth } from 'firebase/auth';
 import { FIREBASE_APP } from '../services/firebase.config';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { collection, getFirestore, query, getDocs, orderBy, doc, setDoc, onSnapshot} from 'firebase/firestore';
+import { collection, getFirestore, query, getDocs, orderBy, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const HomeScreen = () => {
   const [chats, setChats] = useState([]);
   const auth = getAuth(FIREBASE_APP);
+  const user = auth.currentUser;
+  const userName = user.displayName;
+
+  console.log(userName)
+
   const navigation = useNavigation();
   const db = getFirestore(FIREBASE_APP);
 
@@ -72,8 +77,8 @@ const HomeScreen = () => {
     await setDoc(chatDocRef, { id: newChatId, chat: [] }); // Add a new document with the generated conversation ID
     navigation.navigate('Chat', { chatId: newChatId }); // Navigate to the Chat screen with the generated conversation ID
   };
-  
-  
+
+
 
   const renderChatItem = ({ item }) => (
     <TouchableOpacity onPress={() => handleChatPress(item.id)}>
@@ -83,26 +88,34 @@ const HomeScreen = () => {
     </TouchableOpacity>
   );
 
- 
+
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Chats</Text>
-        <TouchableOpacity onPress={handleNewChat} style={styles.newChatButton}>
-          <Icon name="chat-plus-outline" size={25} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.headerContainer}>
+
+        <View style={styles.header}>
+          <Text style={styles.heading}>Hi {userName}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between'}}>
+            <TouchableOpacity onPress={handleNewChat} style={styles.newChatButton}>
+              <Icon margin={5} name="chat-plus-outline" size={25} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSignOut} >
+              <Icon margin={5}  name="logout" size={25} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+      </SafeAreaView>
       <FlatList
         data={chats}
         renderItem={renderChatItem}
         keyExtractor={(item) => item.id}
         initialNumToRender={100}
+        style={{ marginHorizontal: 5 }}
       />
-      <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-        <Text style={styles.signOutButtonText}>Sign Out</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+
+    </View>
   );
 };
 
@@ -110,16 +123,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#2C2647',
-    padding: 10,
+  },
+  headerContainer: {
+    backgroundColor: '#442C60',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#442C60',
     padding: 10,
-    paddingTop: 30,
-    marginHorizontal: -10,
   },
   heading: {
     fontSize: 18,
@@ -144,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 10,
     alignItems: 'center',
-    marginTop: 20,
+    margin: 20
   },
   signOutButtonText: {
     color: 'white',
