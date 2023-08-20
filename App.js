@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import SignInScreen from './screens/SignInScreen';
 import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
+import CreateAccountScreen from './screens/CreateAccountScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -12,8 +13,9 @@ const Stack = createNativeStackNavigator();
 const App = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator >
+      <Stack.Navigator initialRouteName='SignIn' >
         <Stack.Screen options={{ headerShown: false }} name="SignIn" component={SignInScreen} />
+        <Stack.Screen options={{ headerShown: false }} name="CreateAccount" component={CreateAccountScreen} />
         <Stack.Screen options={{ headerShown: false, gestureEnabled: false  }} name="Home" component={HomeScreen} />
         <Stack.Screen options={{ headerShown: false }} name="Chat" component={ChatScreen} />
       </Stack.Navigator>
