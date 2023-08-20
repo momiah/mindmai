@@ -10,6 +10,7 @@ npm-debug.*
 *.orig.*
 web-build/
 .env
+gcp-service.json
 
 # macOS
 .DS_Store
