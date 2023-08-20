@@ -9,14 +9,15 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { setDoc, doc, onSnapshot} from 'firebase/firestore';
+import { db } from '../services/firebase.config';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import * as Speech from "expo-speech";
 
 import axios from "axios";
-import { API_KEY } from "@env";
-const apiKey = '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';
+
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -36,6 +37,35 @@ const ChatScreen = () => {
     }
   }, [response]);
 
+  useEffect(() => {
+    const chatDocRef = doc(db, "chats", conversationId);
+    const unsubscribe = onSnapshot(chatDocRef, (doc) => {
+      if (doc.exists) {
+        const chatData = doc.data();
+        setResponse(chatData.chat);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const conversationId = "your_unique_conversation_id"; // Replace with your unique identifier
+
+  const saveChatToFirestore = async (conversation) => {
+    try {
+      if (!db) {
+        console.error("Firestore instance not initialized");
+        return;
+      }
+      const chatDocRef = doc(db, "chats", conversationId);
+      await setDoc(chatDocRef, { chat: conversation }, { merge: true });
+    } catch (error) {
+      console.error("Error saving chat to Firestore:", error);
+    }
+  };
+  
   const handleSend = async () => {
     if (inputText.trim() === "") {
       return;
@@ -80,14 +110,17 @@ const ChatScreen = () => {
         timestamp: new Date().getTime(),
       };
   
-      setResponse((prevResponse) => [...prevResponse, responseMessage]);
+      const updatedConversation = [...updatedResponse, responseMessage];
+      setResponse(updatedConversation);
       setPlaybackMessage(`response-${response.length}`);
+      await saveChatToFirestore(updatedConversation);
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setLoading(false); // Hide loading indicator, regardless of success or error
     }
   };
+  
   
 
   const formatTimestamp = (timestamp) => {
