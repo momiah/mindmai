@@ -17,11 +17,12 @@ import { DotIndicator } from "react-native-indicators";
 import * as Speech from "expo-speech";
 
 import axios from "axios";
-
+import { API_KEY } from "@env";
+const apiKey = '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';
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
-const ChatScreen = () => {
+const ChatScreen = ({ route }) => {
   const [inputText, setInputText] = useState("");
   const [response, setResponse] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,8 @@ const ChatScreen = () => {
 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
+
+  const conversationId = route.params.chatId; // Use the chatId passed as a parameter
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -42,16 +45,22 @@ const ChatScreen = () => {
     const unsubscribe = onSnapshot(chatDocRef, (doc) => {
       if (doc.exists) {
         const chatData = doc.data();
-        setResponse(chatData.chat);
+        if (chatData && chatData.chat) {
+          setResponse(chatData.chat);
+        } else {
+          console.error("Document exists but does not have the expected structure:", chatData);
+          setResponse([]); // Initialize the chat with an empty array
+        }
+      } else {
+        console.error("Document does not exist:", conversationId);
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
-
-  const conversationId = "your_unique_conversation_id"; // Replace with your unique identifier
+  }, [conversationId]);
+  
 
   const saveChatToFirestore = async (conversation) => {
     try {
@@ -66,6 +75,8 @@ const ChatScreen = () => {
     }
   };
   
+  
+
   const handleSend = async () => {
     if (inputText.trim() === "") {
       return;
@@ -120,7 +131,6 @@ const ChatScreen = () => {
       setLoading(false); // Hide loading indicator, regardless of success or error
     }
   };
-  
   
 
   const formatTimestamp = (timestamp) => {
