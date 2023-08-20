@@ -19,7 +19,10 @@
     "expo-status-bar": "~1.4.4",
     "firebase": "^9.22.2",
     "install": "^0.13.0",
+<<<<<<< HEAD
     "npm": "^9.7.2",
+=======
+>>>>>>> main
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-native": "0.71.8",
