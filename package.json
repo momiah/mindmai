@@ -30,7 +30,8 @@
     "react-native-svg": "^13.11.0",
     "react-native-web": "^0.19.5",
     "speech": "^0.2.1",
-    "update": "^0.7.4"
+    "update": "^0.7.4",
+    "expo-av": "~13.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

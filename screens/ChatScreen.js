@@ -15,10 +15,11 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import * as Speech from "expo-speech";
+import { Audio } from 'expo-av';
 
 import axios from "axios";
 import { API_KEY } from "@env";
-const apiKey = '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';
+const apiKey = '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';
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -164,6 +165,58 @@ const ChatScreen = ({ route }) => {
     }
   };
 
+  //PLAYHT
+  const handlePlayHT = async () => {
+
+    const options = {
+      method: 'POST',
+      url: 'https://play.ht/api/v2/tts',
+      headers: {
+        accept: 'text/event-stream',
+        'content-type': 'application/json',
+        AUTHORIZATION: 'b3b6ca0c11f248399fd8b77fea2af6c4',
+        'X-USER-ID': 'i4b7dpjFnReSXXkflLAoNeVMbLn2'
+      },
+      data: {
+        text: 'Hello from the ultra-realistic voice.',
+        voice: 'larry',
+        quality: 'medium',
+        output_format: 'mp3',
+        speed: 1,
+        sample_rate: 24000
+      }
+    };
+    
+    axios
+      .request(options)
+      .then(async function (response) {
+        console.log(response.data.url, 'data completed?');
+        if (response.data.url !== undefined) {
+          const { sound } = await Audio.Sound.createAsync({ uri: response.data.url });
+          await sound.playAsync();
+
+          console.log(sound, 'sound')
+        }          
+      })
+      .catch(function (error) {
+        console.error(error);
+      });
+
+    try {
+      const response = await axios.request(options);
+      console.log(response)
+    //   // Handle the response
+   
+
+      
+    } catch (error) {
+      // Handle errors
+      console.error('Error:', error);
+    }
+
+ 
+  }
+
   console.log(response, 'response', inputText, 'inputText')
 
   return (
@@ -199,7 +252,7 @@ const ChatScreen = ({ route }) => {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <TouchableOpacity
                   style={styles.playButton}
-                  onPress={() => handlePlay(item.id, item.text)}
+                  onPress={() => handlePlayHT(item.id, item.text)}
                 >
                   {playing && item.id === playbackMessage ? (
                     <Icon name="stop" size={25} color="#FFFFFF" />
