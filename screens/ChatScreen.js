@@ -9,17 +9,16 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { setDoc, doc, onSnapshot} from 'firebase/firestore';
+import { setDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase.config';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
-import * as Speech from "expo-speech";
 import { Audio } from 'expo-av';
 
 import axios from "axios";
 import { API_KEY } from "@env";
-const apiKey = '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';
+const apiKey = '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';
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -61,7 +60,6 @@ const ChatScreen = ({ route }) => {
       unsubscribe();
     };
   }, [conversationId]);
-  
 
   const saveChatToFirestore = async (conversation) => {
     try {
@@ -75,29 +73,27 @@ const ChatScreen = ({ route }) => {
       console.error("Error saving chat to Firestore:", error);
     }
   };
-  
-  
 
   const handleSend = async () => {
     if (inputText.trim() === "") {
       return;
     }
-  
+
     setTimeout(() => {
       setLoading(!loading); // Show loading indicator after the delay
     }, 100); // Adjust the delay time as needed
-  
+
     const newMessage = {
       id: String(response.length),
       text: inputText,
       isResponse: false,
       timestamp: new Date().getTime(),
     };
-  
+
     const updatedResponse = [...response, newMessage];
     setResponse(updatedResponse);
     setInputText("");
-  
+
     try {
       const apiResponse = await axios.post(
         apiUrl,
@@ -113,7 +109,7 @@ const ChatScreen = ({ route }) => {
           },
         }
       );
-  
+
       const responseText = apiResponse.data.choices[0].text.trim();
       const responseMessage = {
         id: `response-${response.length}`,
@@ -121,7 +117,7 @@ const ChatScreen = ({ route }) => {
         isResponse: true,
         timestamp: new Date().getTime(),
       };
-  
+
       const updatedConversation = [...updatedResponse, responseMessage];
       setResponse(updatedConversation);
       setPlaybackMessage(`response-${response.length}`);
@@ -132,7 +128,7 @@ const ChatScreen = ({ route }) => {
       setLoading(false); // Hide loading indicator, regardless of success or error
     }
   };
-  
+
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
@@ -141,33 +137,8 @@ const ChatScreen = ({ route }) => {
     return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
   };
 
-  //EXPO VOICE
-  const handlePlay = (messageId, text) => {
-    if (playing && messageId === playbackMessage) {
-      Speech.stop();
-      setPlaying(false);
-      setPlaybackMessage("");
-    } else {
-      Speech.speak(text, {
-        onStart: () => {
-          setPlaying(true);
-          setPlaybackMessage(messageId);
-        },
-        onDone: () => {
-          setPlaying(false);
-          setPlaybackMessage("");
-        },
-        onStopped: () => {
-          setPlaying(false);
-          setPlaybackMessage("");
-        },
-      });
-    }
-  };
-
   //PLAYHT
-  const handlePlayHT = async () => {
-
+  const handlePlayHT = async (responseId, responseText) => {
     const options = {
       method: 'POST',
       url: 'https://play.ht/api/v2/tts',
@@ -178,46 +149,35 @@ const ChatScreen = ({ route }) => {
         'X-USER-ID': 'i4b7dpjFnReSXXkflLAoNeVMbLn2'
       },
       data: {
-        text: 'Hello from the ultra-realistic voice.',
-        voice: 'larry',
+        text: responseText,
+        voice: 'daisy',
         quality: 'medium',
         output_format: 'mp3',
         speed: 1,
         sample_rate: 24000
       }
     };
-    
+
     axios
       .request(options)
       .then(async function (response) {
-        console.log(response.data.url, 'data completed?');
-        if (response.data.url !== undefined) {
-          const { sound } = await Audio.Sound.createAsync({ uri: response.data.url });
-          await sound.playAsync();
+        // Get lines from the response, clear empty lines and returns the last one
+        const lastLine = response.data
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .pop();
 
-          console.log(sound, 'sound')
-        }          
+        // Remove the "data:" prefix from the line
+        const jsonResult = lastLine.split("data: ")[1];
+        const result = JSON.parse(jsonResult);
+        const audioUrl = result.url;
+
+        // Play sound
+        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl })
+        await sound.playAsync()
       })
-      .catch(function (error) {
-        console.error(error);
-      });
-
-    try {
-      const response = await axios.request(options);
-      console.log(response)
-    //   // Handle the response
-   
-
-      
-    } catch (error) {
-      // Handle errors
-      console.error('Error:', error);
-    }
-
- 
   }
-
-  console.log(response, 'response', inputText, 'inputText')
 
   return (
     <KeyboardAvoidingView
