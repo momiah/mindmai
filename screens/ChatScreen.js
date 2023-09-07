@@ -17,8 +17,7 @@ import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
 
 import axios from "axios";
-import { API_KEY } from "@env";
-const apiKey = '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';
+
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -28,6 +27,7 @@ const ChatScreen = ({ route }) => {
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [playbackMessage, setPlaybackMessage] = useState("");
+  const [audioClips, setAudioClips] = useState([])
 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
@@ -60,6 +60,11 @@ const ChatScreen = ({ route }) => {
       unsubscribe();
     };
   }, [conversationId]);
+
+    // Log the updated state
+    useEffect(() => {
+      console.log(audioClips, 'line 67');
+    }, [audioClips]);
 
   const saveChatToFirestore = async (conversation) => {
     try {
@@ -94,6 +99,8 @@ const ChatScreen = ({ route }) => {
     setResponse(updatedResponse);
     setInputText("");
 
+    let responseText = null
+
     try {
       const apiResponse = await axios.post(
         apiUrl,
@@ -110,12 +117,13 @@ const ChatScreen = ({ route }) => {
         }
       );
 
-      const responseText = apiResponse.data.choices[0].text.trim();
+      responseText = apiResponse.data.choices[0].text.trim();
       const responseMessage = {
         id: `response-${response.length}`,
         text: responseText,
         isResponse: true,
         timestamp: new Date().getTime(),
+        audioUrl: null,
       };
 
       const updatedConversation = [...updatedResponse, responseMessage];
@@ -127,18 +135,7 @@ const ChatScreen = ({ route }) => {
     } finally {
       setLoading(false); // Hide loading indicator, regardless of success or error
     }
-  };
 
-
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
-  };
-
-  //PLAYHT
-  const handlePlayHT = async (responseId, responseText) => {
     const options = {
       method: 'POST',
       url: 'https://play.ht/api/v2/tts',
@@ -172,12 +169,53 @@ const ChatScreen = ({ route }) => {
         const jsonResult = lastLine.split("data: ")[1];
         const result = JSON.parse(jsonResult);
         const audioUrl = result.url;
+        setAudioClips((prevAudioClips) => [...prevAudioClips, audioUrl]);
 
-        // Play sound
-        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl })
-        await sound.playAsync()
+        console.log(typeof(audioUrl), 'type of something here', audioClips, 'looool')
+
+        // // Play sound
+        // const { sound } = await Audio.Sound.createAsync({ uri: audioUrl })
+        // await sound.playAsync()
       })
-  }
+
+    console.log(responseText, 'response here ')
+  };
+
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
+  };
+
+  //PLAYHT
+  const handlePlayHT = (responseId) => {
+    console.log(responseId, 'responseId');
+    const audioId = parseInt(responseId.match(/\d+/)[0], 10);
+
+    // Ensure the responseId is even (chatbot's response)
+    if (audioId % 2 !== 0) {
+        console.error("Invalid responseId. No audio clip for user's prompts.");
+        return;
+    }
+
+    const audioClipIndex = audioId / 2;
+    const currentAudio = audioClips[audioClipIndex];
+
+    console.log(currentAudio, 'line 207')
+
+    if (!currentAudio) {
+        console.error("No audio clip found for the given responseId.");
+        return;
+    }
+
+      // // Play sound
+      (async () => {
+        const { sound } = await Audio.Sound.createAsync({ uri: currentAudio });
+        await sound.playAsync();
+    })();
+};
 
   return (
     <KeyboardAvoidingView
@@ -212,8 +250,10 @@ const ChatScreen = ({ route }) => {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <TouchableOpacity
                   style={styles.playButton}
-                  onPress={() => handlePlayHT(item.id, item.text)}
+                 
+                  onPress={() => handlePlayHT(item.id)}
                 >
+           
                   {playing && item.id === playbackMessage ? (
                     <Icon name="stop" size={25} color="#FFFFFF" />
                   ) : (
