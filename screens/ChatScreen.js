@@ -9,7 +9,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { setDoc, doc, onSnapshot } from 'firebase/firestore';
+import { setDoc, doc, onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../services/firebase.config';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -17,7 +17,6 @@ import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
 
 import axios from "axios";
-
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
 
@@ -28,9 +27,11 @@ const ChatScreen = ({ route }) => {
   const [playing, setPlaying] = useState(false);
   const [playbackMessage, setPlaybackMessage] = useState("");
   const [audioClips, setAudioClips] = useState([])
+  const [sound, setSound] = useState(null);
 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
+  const colRef = collection(db, 'chats')
 
   const conversationId = route.params.chatId; // Use the chatId passed as a parameter
 
@@ -40,6 +41,7 @@ const ChatScreen = ({ route }) => {
     }
   }, [response]);
 
+  //Use effect to retrieve conversation
   useEffect(() => {
     const chatDocRef = doc(db, "chats", conversationId);
     const unsubscribe = onSnapshot(chatDocRef, (doc) => {
@@ -61,10 +63,43 @@ const ChatScreen = ({ route }) => {
     };
   }, [conversationId]);
 
-    // Log the updated state
-    useEffect(() => {
-      console.log(audioClips, 'line 67');
-    }, [audioClips]);
+
+  useEffect(() => {
+    console.log('Audio Clips array =>', audioClips );
+  }, [audioClips]);
+
+    //Use effect to retrieve audioUrl
+  useEffect(() => {
+    // Reference to the chat document in Firestore
+    const chatDocRef = doc(db, "chats", conversationId);
+
+    // Set up a listener to the chat document
+    const unsubscribe = onSnapshot(chatDocRef, (docSnapshot) => {
+      if (docSnapshot.exists) {
+        const chatData = docSnapshot.data();
+        if (chatData && chatData.chat) {
+          // Extract audio URLs from the chat messages
+          const fetchedAudioClips = chatData.chat
+            .filter(message => message.isResponse && message.audioUrl)
+            .map(message => message.audioUrl);
+
+          // Update the audioClips state
+          setAudioClips(fetchedAudioClips);
+          console.log('fetchd audioClips from Firebase', audioClips)
+        } else {
+          console.error("Document exists but does not have the expected structure:", chatData);
+        }
+      } else {
+        console.error("Document does not exist:", conversationId);
+      }
+    });
+
+    // Clean up the listener when the component is unmounted or when conversationId changes
+    return () => {
+      unsubscribe();
+    };
+  }, [conversationId, db]);
+
 
   const saveChatToFirestore = async (conversation) => {
     try {
@@ -85,8 +120,8 @@ const ChatScreen = ({ route }) => {
     }
 
     setTimeout(() => {
-      setLoading(!loading); // Show loading indicator after the delay
-    }, 100); // Adjust the delay time as needed
+      setLoading(!loading); 
+    }, 100); 
 
     const newMessage = {
       id: String(response.length),
@@ -99,7 +134,7 @@ const ChatScreen = ({ route }) => {
     setResponse(updatedResponse);
     setInputText("");
 
-    let responseText = null
+    let responseText = null;
 
     try {
       const apiResponse = await axios.post(
@@ -118,12 +153,43 @@ const ChatScreen = ({ route }) => {
       );
 
       responseText = apiResponse.data.choices[0].text.trim();
+
+      const options = {
+        method: 'POST',
+        url: 'https://play.ht/api/v2/tts',
+        headers: {
+          accept: 'text/event-stream',
+          'content-type': 'application/json',
+          AUTHORIZATION: 'b3b6ca0c11f248399fd8b77fea2af6c4',
+          'X-USER-ID': 'i4b7dpjFnReSXXkflLAoNeVMbLn2'
+        },
+        data: {
+          text: responseText,
+          voice: 'daisy',
+          quality: 'medium',
+          output_format: 'mp3',
+          speed: 1,
+          sample_rate: 24000
+        }
+      };
+
+      const playHtResponse = await axios.request(options);
+      const lastLine = playHtResponse.data
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .pop();
+
+      const jsonResult = lastLine.split("data: ")[1];
+      const result = JSON.parse(jsonResult);
+      const audioUrl = result.url;
+
       const responseMessage = {
         id: `response-${response.length}`,
         text: responseText,
         isResponse: true,
         timestamp: new Date().getTime(),
-        audioUrl: null,
+        audioUrl: audioUrl,
       };
 
       const updatedConversation = [...updatedResponse, responseMessage];
@@ -135,52 +201,7 @@ const ChatScreen = ({ route }) => {
     } finally {
       setLoading(false); // Hide loading indicator, regardless of success or error
     }
-
-    const options = {
-      method: 'POST',
-      url: 'https://play.ht/api/v2/tts',
-      headers: {
-        accept: 'text/event-stream',
-        'content-type': 'application/json',
-        AUTHORIZATION: 'b3b6ca0c11f248399fd8b77fea2af6c4',
-        'X-USER-ID': 'i4b7dpjFnReSXXkflLAoNeVMbLn2'
-      },
-      data: {
-        text: responseText,
-        voice: 'daisy',
-        quality: 'medium',
-        output_format: 'mp3',
-        speed: 1,
-        sample_rate: 24000
-      }
-    };
-
-    axios
-      .request(options)
-      .then(async function (response) {
-        // Get lines from the response, clear empty lines and returns the last one
-        const lastLine = response.data
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .pop();
-
-        // Remove the "data:" prefix from the line
-        const jsonResult = lastLine.split("data: ")[1];
-        const result = JSON.parse(jsonResult);
-        const audioUrl = result.url;
-        setAudioClips((prevAudioClips) => [...prevAudioClips, audioUrl]);
-
-        console.log(typeof(audioUrl), 'type of something here', audioClips, 'looool')
-
-        // // Play sound
-        // const { sound } = await Audio.Sound.createAsync({ uri: audioUrl })
-        // await sound.playAsync()
-      })
-
-    console.log(responseText, 'response here ')
   };
-
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
@@ -188,34 +209,61 @@ const ChatScreen = ({ route }) => {
     const minutes = date.getMinutes();
     return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
   };
-
-  //PLAYHT
-  const handlePlayHT = (responseId) => {
-    console.log(responseId, 'responseId');
+ 
+  //PLAY AUDIO
+  const handlePlay = async (responseId) => {
     const audioId = parseInt(responseId.match(/\d+/)[0], 10);
-
+  
     // Ensure the responseId is even (chatbot's response)
     if (audioId % 2 !== 0) {
-        console.error("Invalid responseId. No audio clip for user's prompts.");
-        return;
+      console.error("Invalid responseId. No audio clip for user's prompts.");
+      return;
     }
-
+  
     const audioClipIndex = audioId / 2;
     const currentAudio = audioClips[audioClipIndex];
-
-    console.log(currentAudio, 'line 207')
-
+  
     if (!currentAudio) {
-        console.error("No audio clip found for the given responseId.");
-        return;
+      console.error("No audio clip found for the given responseId.");
+      return;
     }
-
-      // // Play sound
-      (async () => {
-        const { sound } = await Audio.Sound.createAsync({ uri: currentAudio });
+  
+    if (playing && playbackMessage === responseId) {
+      // If the audio is currently playing and the user presses the stop button
+      if (sound) {
+        await sound.pauseAsync();
+        setPlaying(false);
+      }
+    } else {
+      // If the audio is not playing or a different audio is playing
+      if (sound && playbackMessage === responseId) {
+        // If it's the same audio clip, just resume playing
         await sound.playAsync();
-    })();
-};
+        setPlaying(true);
+      } else {
+        // If it's a different audio clip, stop the current sound and create a new instance
+        if (sound) {
+          await sound.stopAsync();
+          setSound(null);
+        }
+  
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri: currentAudio });
+        setSound(newSound);
+        await newSound.playAsync();
+        setPlaying(true);
+        setPlaybackMessage(responseId);
+  
+        // Add a listener to reset states when the audio finishes playing
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlaying(false);
+            setSound(null);
+          }
+        });
+      }
+    }
+  };
+  
 
   return (
     <KeyboardAvoidingView
@@ -250,10 +298,10 @@ const ChatScreen = ({ route }) => {
                 <Text style={styles.messageText}>{item.text}</Text>
                 <TouchableOpacity
                   style={styles.playButton}
-                 
-                  onPress={() => handlePlayHT(item.id)}
+
+                  onPress={() => handlePlay(item.id)}
                 >
-           
+
                   {playing && item.id === playbackMessage ? (
                     <Icon name="stop" size={25} color="#FFFFFF" />
                   ) : (
