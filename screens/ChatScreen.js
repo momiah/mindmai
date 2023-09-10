@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
 
+
 import axios from "axios";
 
 const apiUrl = "https://api.openai.com/v1/engines/text-davinci-003/completions";
@@ -65,10 +66,10 @@ const ChatScreen = ({ route }) => {
 
 
   useEffect(() => {
-    console.log('Audio Clips array =>', audioClips );
+    console.log('Audio Clips array =>', audioClips);
   }, [audioClips]);
 
-    //Use effect to retrieve audioUrl
+  //Use effect to retrieve audioUrl
   useEffect(() => {
     // Reference to the chat document in Firestore
     const chatDocRef = doc(db, "chats", conversationId);
@@ -120,8 +121,8 @@ const ChatScreen = ({ route }) => {
     }
 
     setTimeout(() => {
-      setLoading(!loading); 
-    }, 100); 
+      setLoading(!loading);
+    }, 100);
 
     const newMessage = {
       id: String(response.length),
@@ -158,7 +159,7 @@ const ChatScreen = ({ route }) => {
         method: 'POST',
         url: 'https://play.ht/api/v2/tts',
         headers: {
-          accept: 'text/event-stream',
+          accept: 'audio/mpeg',
           'content-type': 'application/json',
           AUTHORIZATION: 'b3b6ca0c11f248399fd8b77fea2af6c4',
           'X-USER-ID': 'i4b7dpjFnReSXXkflLAoNeVMbLn2'
@@ -184,6 +185,28 @@ const ChatScreen = ({ route }) => {
       const result = JSON.parse(jsonResult);
       const audioUrl = result.url;
 
+
+
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      setSound(newSound);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isPlaying) {
+          setPlaying(true);
+          console.log("Playback status update: playing");
+        } else {
+          setPlaying(false);
+          console.log("Playback status update: not playing");
+        }
+      });
+
+      await newSound.playAsync();
+      console.log("Is playing after playAsync:", playing);
+
+      // setPlaying(true);
+      setPlaybackMessage(audioUrl);
+
+
       const responseMessage = {
         id: `response-${response.length}`,
         text: responseText,
@@ -194,7 +217,6 @@ const ChatScreen = ({ route }) => {
 
       const updatedConversation = [...updatedResponse, responseMessage];
       setResponse(updatedConversation);
-      setPlaybackMessage(`response-${response.length}`);
       await saveChatToFirestore(updatedConversation);
     } catch (error) {
       console.error("Error:", error);
@@ -209,34 +231,19 @@ const ChatScreen = ({ route }) => {
     const minutes = date.getMinutes();
     return `${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
   };
- 
+
   //PLAY AUDIO
-  const handlePlay = async (responseId) => {
-    const audioId = parseInt(responseId.match(/\d+/)[0], 10);
-  
-    // Ensure the responseId is even (chatbot's response)
-    if (audioId % 2 !== 0) {
-      console.error("Invalid responseId. No audio clip for user's prompts.");
-      return;
-    }
-  
-    const audioClipIndex = audioId / 2;
-    const currentAudio = audioClips[audioClipIndex];
-  
-    if (!currentAudio) {
-      console.error("No audio clip found for the given responseId.");
-      return;
-    }
-  
-    if (playing && playbackMessage === responseId) {
+  const handlePlay = async (audioUrl) => {
+    if (playing && playbackMessage === audioUrl) {
       // If the audio is currently playing and the user presses the stop button
       if (sound) {
+        console.log(sound, 'line 242')
         await sound.pauseAsync();
         setPlaying(false);
       }
     } else {
       // If the audio is not playing or a different audio is playing
-      if (sound && playbackMessage === responseId) {
+      if (sound && playbackMessage === audioUrl) {
         // If it's the same audio clip, just resume playing
         await sound.playAsync();
         setPlaying(true);
@@ -246,13 +253,13 @@ const ChatScreen = ({ route }) => {
           await sound.stopAsync();
           setSound(null);
         }
-  
-        const { sound: newSound } = await Audio.Sound.createAsync({ uri: currentAudio });
+
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUrl });
         setSound(newSound);
         await newSound.playAsync();
         setPlaying(true);
-        setPlaybackMessage(responseId);
-  
+        setPlaybackMessage(audioUrl);
+
         // Add a listener to reset states when the audio finishes playing
         newSound.setOnPlaybackStatusUpdate((status) => {
           if (status.didJustFinish) {
@@ -263,7 +270,10 @@ const ChatScreen = ({ route }) => {
       }
     }
   };
-  
+
+
+
+
 
   return (
     <KeyboardAvoidingView
@@ -299,17 +309,15 @@ const ChatScreen = ({ route }) => {
                 <TouchableOpacity
                   style={styles.playButton}
 
-                  onPress={() => handlePlay(item.id)}
+                  onPress={() => handlePlay(item.audioUrl)}
                 >
 
-                  {playing && item.id === playbackMessage ? (
+                  {playing && item.audioUrl === playbackMessage ? (
+                    console.log("Rendering stop icon"),
                     <Icon name="stop" size={25} color="#FFFFFF" />
                   ) : (
-                    <Icon
-                      name="play-circle-outline"
-                      size={25}
-                      color="#FFFFFF"
-                    />
+                    console.log("Rendering play icon"),
+                    <Icon name="play-circle-outline" size={25} color="#FFFFFF" />
                   )}
                 </TouchableOpacity>
               </View>
