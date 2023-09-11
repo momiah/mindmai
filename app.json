@@ -1,5 +1,14 @@
 {
   "expo": {
+    "plugins": [
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "speechRecogntionPermission": "Allow $(PRODUCT_NAME) to securely recognize user speech"
+        }
+      ]
+    ],
     "name": "mindmai",
     "slug": "mindmai",
     "version": "1.0.0",
@@ -15,7 +24,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.momiah.mindmai"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +35,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2579a125-7a93-4cda-bd58-a78dc2f29f9a"
+      }
     }
   }
 }

@@ -15,7 +15,9 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
-
+import { SpeechToText } from '../services/SpeechToText'
+import { API_KEY } from "@env";
+const apiKey = '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';
 
 import axios from "axios";
 
@@ -29,6 +31,7 @@ const ChatScreen = ({ route }) => {
   const [playbackMessage, setPlaybackMessage] = useState("");
   const [audioClips, setAudioClips] = useState([])
   const [sound, setSound] = useState(null);
+  const { state, startRecognizing, stopRecognizing, destroyRecognizer } = useVoiceRecognition();
 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
@@ -349,6 +352,14 @@ const ChatScreen = ({ route }) => {
           style={styles.input}
           multiline
         />
+        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+          <Icon
+            name="stop"
+            size={155}
+            color="#FFFFFF"
+            style={styles.sendButtonText}
+          />
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
           <Icon
             name="send"
