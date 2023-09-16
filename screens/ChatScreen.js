@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
 import { useVoiceRecognition } from '../services/SpeechToText'
+import LiveChat from "./LiveChat";
 
 
 import axios from "axios";
@@ -111,6 +112,12 @@ const ChatScreen = ({ route }) => {
       setInputText(voiceState.results[0]);
     }
   }, [voiceState]);
+
+  const handleChatPress = () => {
+    // Navigate to LiveChat screen
+    navigation.navigate('LiveChat');
+  };
+
   
 
   const saveChatToFirestore = async (conversation) => {
@@ -294,6 +301,14 @@ const ChatScreen = ({ route }) => {
           <Icon name="chevron-left" size={35} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.heading}>Chat</Text>
+        <TouchableOpacity onPress={handleChatPress} style={styles.sendButton}>
+          <Icon
+            name="record-voice-over"
+            size={55}
+            color="#FFFFFF"
+            style={styles.sendButtonText}
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -410,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#442C60",
-    paddingTop: 40, // Adjust the paddingTop value for iOS and Android
+    paddingTop: 50, // Adjust the paddingTop value for iOS and Android
     paddingBottom: 10,
     paddingRight: 30,
     paddingLeft: 10,
