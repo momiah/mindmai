@@ -15,9 +15,8 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { DotIndicator } from "react-native-indicators";
 import { Audio } from 'expo-av';
-import { SpeechToText } from '../services/SpeechToText'
-import { API_KEY } from "@env";
-const apiKey = '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';
+import { useVoiceRecognition } from '../services/SpeechToText'
+
 
 import axios from "axios";
 
@@ -31,11 +30,14 @@ const ChatScreen = ({ route }) => {
   const [playbackMessage, setPlaybackMessage] = useState("");
   const [audioClips, setAudioClips] = useState([])
   const [sound, setSound] = useState(null);
-  const { state, startRecognizing, stopRecognizing, destroyRecognizer } = useVoiceRecognition();
+  const [borderColor, setBorderColor] = useState("red");
+  const [isRecording, setIsRecording] = useState(false);
+
+
+  const { voiceState, startRecognizing, stopRecognizing, destroyRecognizer } = useVoiceRecognition();
 
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
-  const colRef = collection(db, 'chats')
 
   const conversationId = route.params.chatId; // Use the chatId passed as a parameter
 
@@ -104,6 +106,12 @@ const ChatScreen = ({ route }) => {
     };
   }, [conversationId, db]);
 
+  useEffect(() => {
+    if (voiceState && voiceState.results && voiceState.results[0]) {
+      setInputText(voiceState.results[0]);
+    }
+  }, [voiceState]);
+  
 
   const saveChatToFirestore = async (conversation) => {
     try {
@@ -117,6 +125,8 @@ const ChatScreen = ({ route }) => {
       console.error("Error saving chat to Firestore:", error);
     }
   };
+
+  
 
   const handleSend = async () => {
     if (inputText.trim() === "") {
@@ -274,10 +284,6 @@ const ChatScreen = ({ route }) => {
     }
   };
 
-
-
-
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -345,6 +351,7 @@ const ChatScreen = ({ route }) => {
       )}
 
       <View style={styles.inputContainer}>
+
         <TextInput
           value={inputText}
           onChangeText={setInputText}
@@ -352,9 +359,26 @@ const ChatScreen = ({ route }) => {
           style={styles.input}
           multiline
         />
-        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressIn={() => {
+            setBorderColor("green");
+            setIsRecording(true);  // Set to true explicitly
+            startRecognizing();
+          }}
+          onPressOut={() => {
+            setBorderColor("grey");  // Set to grey or any default color
+            setIsRecording(false);  // Set to false explicitly
+            stopRecognizing();
+            // handleSubmit();
+          }}
+          style={[
+            styles.sendButton,
+            { borderColor: borderColor, borderWidth: 1 },
+            isRecording ? styles.recording : {}
+          ]}>
           <Icon
-            name="stop"
+            name="mic"
             size={155}
             color="#FFFFFF"
             style={styles.sendButtonText}
@@ -451,6 +475,14 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingHorizontal: 10,
     paddingVertical: 10,
+    marginHorizontal: 3,
+  },
+  recording: {
+    shadowColor: '#00FF00', // Green shadow color
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 5, // for Android
   },
   sendButtonText: {
     color: "white",

@@ -5,7 +5,7 @@ import Voice, {
 
 //THIS FILE DOES NOT WORK WITH EXPO
 export const useVoiceRecognition = () => {
-  const [state, setState] = useState({
+  const [voiceState, setVoiceState] = useState({
     recognized: "",
     pitch: "",
     error: "",
@@ -16,8 +16,8 @@ export const useVoiceRecognition = () => {
     isRecording: false,
   });
 
-  const resetState = useCallback(() => {
-    setState({
+  const resetVoiceState = useCallback(() => {
+    setVoiceState({
       recognized: "",
       pitch: "",
       error: "",
@@ -27,16 +27,16 @@ export const useVoiceRecognition = () => {
       end: "",
       isRecording: false,
     });
-  }, [setState]);
+  }, [setVoiceState]);
 
   const startRecognizing = useCallback(async () => {
-    resetState();
+    resetVoiceState();
     try {
       await Voice.start("en-US");
     } catch (e) {
       console.error(e);
     }
-  }, [resetState]);
+  }, [resetVoiceState]);
 
   const stopRecognizing = useCallback(async () => {
     try {
@@ -60,25 +60,25 @@ export const useVoiceRecognition = () => {
     } catch (e) {
       console.error(e);
     }
-    resetState();
-  }, [resetState]);
+    resetVoiceState();
+  }, [resetVoiceState]);
 
   useEffect(() => {
     Voice.onSpeechStart = (e) => {
-      setState((prevState) => ({
+      setVoiceState((prevState) => ({
         ...prevState,
         started: "√",
         isRecording: true,
       }));
     };
     Voice.onSpeechRecognized = () => {
-      setState((prevState) => ({ ...prevState, recognized: "√" }));
+      setVoiceState((prevState) => ({ ...prevState, recognized: "√" }));
     };
     Voice.onSpeechEnd = (e) => {
-      setState((prevState) => ({ ...prevState, end: "√", isRecording: false }));
+      setVoiceState((prevState) => ({ ...prevState, end: "√", isRecording: false }));
     };
     Voice.onSpeechError = (e) => {
-      setState((prevState) => ({
+      setVoiceState((prevState) => ({
         ...prevState,
         error: JSON.stringify(e.error),
         isRecording: false,
@@ -86,16 +86,16 @@ export const useVoiceRecognition = () => {
     };
     Voice.onSpeechResults = (e) => {
       if (e.value) {
-        setState((prevState) => ({ ...prevState, results: e.value }));
+        setVoiceState((prevState) => ({ ...prevState, results: e.value }));
       }
     };
     Voice.onSpeechPartialResults = (e) => {
       if (e.value) {
-        setState((prevState) => ({ ...prevState, partialResults: e.value }));
+        setVoiceState((prevState) => ({ ...prevState, partialResults: e.value }));
       }
     };
     Voice.onSpeechVolumeChanged = (e) => {
-      setState((prevState) => ({ ...prevState, pitch: e.value }));
+      setVoiceState((prevState) => ({ ...prevState, pitch: e.value }));
     };
 
     return () => {
@@ -104,9 +104,9 @@ export const useVoiceRecognition = () => {
   }, []);
 
   return {
-    state,
-    setState,
-    resetState,
+    voiceState,
+    setVoiceState,
+    resetVoiceState,
     startRecognizing,
     stopRecognizing,
     cancelRecognizing,

@@ -4,8 +4,8 @@
       [
         "@react-native-voice/voice",
         {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-          "speechRecogntionPermission": "Allow $(PRODUCT_NAME) to securely recognize user speech"
+          "microphonePermission": "Allow mindmai to access your microphone",
+          "speechRecogntionPermission": "Allow mindmai to securely recognize user speech"
         }
       ]
     ],
@@ -31,7 +31,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.momiah.mindmai"
     },
     "web": {
       "favicon": "./assets/favicon.png"
